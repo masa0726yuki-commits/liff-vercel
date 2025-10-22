@@ -35,6 +35,8 @@
     .row>*{flex:1}
     input[type="text"]{padding:14px 12px;border-radius:12px;border:1px solid var(--border);background:#0b1425;color:var(--text)}
     .out{margin-top:12px;background:#0a1120;border:1px dashed #263042;color:#aab8d4;border-radius:14px;padding:14px;min-height:120px;white-space:pre-wrap;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    textarea{width:100%;min-height:200px;padding:12px;border-radius:12px;border:1px solid var(--border);
+      background:#0a1120;color:#aab8d4;white-space:pre;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;}
     .toast{position:fixed;inset:auto 16px 16px 16px;display:none;z-index:50;background:#0b1425;border:1px solid #1f2937;color:#e5e7eb;padding:12px 14px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
     .toast.show{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
@@ -73,6 +75,13 @@
 
     <div id="out" class="out">--- 出力エリア ---</div>
 
+    <!-- ▼ 診断結果（コピー対応） -->
+    <div class="row" style="gap:8px; margin-top:10px;">
+      <button id="btn-diag-copy" class="btn">📋 診断結果をコピー</button>
+    </div>
+    <textarea id="diag-text" readonly></textarea>
+    <!-- ▲ 診断結果（コピー対応） -->
+
     <footer>
       <div>© Your Project</div>
       <div><a class="link" href="#" onclick="location.reload()">再読み込み</a></div>
@@ -82,8 +91,8 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // ★あなたの LIFF ID を入れてください（例: "2008326025-1LYV0A5o"）
-    const LIFF_ID = "PUT_YOUR_LIFF_ID_HERE";
+    // あなたの LIFF ID（確定）
+    const LIFF_ID = "2008326025-1LYV0A5o";
 
     const $ = s => document.querySelector(s);
     const print = (v, replace=false)=>{ const el=$('#out'); el.textContent = replace ? String(v) : (el.textContent + "\n" + v); el.scrollTop = el.scrollHeight; };
@@ -93,8 +102,7 @@
     async function ensureLogin(){ if(!liff.isLoggedIn()){ liff.login(); return false; } return true; }
 
     async function initLiff(){
-      // SDK読み込みチェック
-      if(!('liff' in window)){ print("LIFF SDKを読み込めませんでした。ネットワーク/コンテンツブロッカーを確認してください。", true); return; }
+      if(!('liff' in window)){ print("LIFF SDKを読み込めませんでした。", true); return; }
       try{
         print("LIFF SDK 読み込みOK。初期化中…", true);
         await liff.init({ liffId: LIFF_ID });
@@ -106,6 +114,51 @@
         console.error(e);
       }
     }
+
+    /** ▼診断機能とコピー処理 */
+    async function buildLiffDiagnosticText() {
+      try {
+        const payload = {
+          '✅ LIFF診断結果': '',
+          loggedIn: liff.isLoggedIn(),
+          inClient : liff.isInClient(),
+          os       : liff.getOS?.(),
+          language : liff.getLanguage?.() || navigator.language || 'unknown',
+          version  : liff.getVersion?.() || 'unknown',
+          context  : liff.getContext?.() || null,
+          grantedScopes: (await liff.getGrantedScopes?.()) || [],
+          friendship   : (await (async ()=>{ try{return await liff.getFriendship();}catch{return null;} })()),
+          profile      : (await (async ()=>{ try{
+                            const p = await liff.getProfile();
+                            return { userId:p.userId, displayName:p.displayName };
+                          }catch{return null;} })())
+        };
+        const header = '✅ LIFF診断結果\n--------------------\n';
+        const body   = JSON.stringify(payload, null, 2);
+        const footer = '\n--------------------\n※ この内容をコピーして送ってください。';
+        return header + body + footer;
+      } catch (e) {
+        return `診断の生成に失敗しました: ${e?.message || e}`;
+      }
+    }
+
+    async function copyDiagnoseText() {
+      const area = document.getElementById('diag-text');
+      const text = area?.value || '';
+      if (!text.trim()) {
+        alert('コピーできる診断結果がありません。先に「診断」を押してください。');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('診断結果をコピーしました！');
+      } catch {
+        area.focus(); area.select();
+        const ok = document.execCommand('copy');
+        alert(ok ? '診断結果をコピーしました！' : 'コピーに失敗しました…');
+      }
+    }
+    /** ▲診断機能ここまで */
 
     function wireButtons(){
       $('#btn-login').onclick  = ()=> { if(!liff.isLoggedIn()) liff.login(); else toast('すでにログイン済み'); };
@@ -128,7 +181,6 @@
           await liff.sendMessages([{ type:'text', text }]);
           print("[send] 送信成功！"); toast('送信しました');
         }catch(e){
-          // エラー名やコードを出力（原因切り分け用）
           const name = e?.name || e?.code || "Error";
           print("[send] 送信失敗: " + name + " " + (e?.message||""));
           console.error(e);
@@ -137,19 +189,16 @@
       $('#btn-send').onclick  = ()=> doSend("LIFFからメッセージ送信テスト！");
       $('#btn-send2').onclick = ()=> doSend($('#msg').value);
 
+      // ▼診断機能を差し替え
       $('#btn-diagnose').onclick = async ()=>{
         try{
-          const info = {
-            loggedIn: liff.isLoggedIn(),
-            inClient: liff.isInClient(),
-            os: liff.getOS?.(),
-            version: liff.getVersion?.(),
-            context: liff.getContext?.(),
-            grantedScopes: (await liff.getGrantedScopes?.())||[]
-          };
-          print("診断情報:\n" + JSON.stringify(info,null,2));
+          const text = await buildLiffDiagnosticText();
+          print("診断情報を生成しました。下の枠をコピーできます。");
+          $('#diag-text').value = text;
+          toast('診断結果を更新');
         }catch(e){ print("診断エラー: " + e); }
       };
+      $('#btn-diag-copy').onclick = copyDiagnoseText;
     }
 
     wireButtons();
