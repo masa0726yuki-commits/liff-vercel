@@ -27,15 +27,15 @@
     .badge{font-size:12px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted);background:#0b1220}
     .grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
     @media (max-width:640px){.grid{grid-template-columns:1fr 1fr}}
-    .btn{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:#0b1425;color:var(--text);font-weight:600;letter-spacing:.02em;cursor:pointer;transition:.15s;display:flex;justify-content:center;gap:.5rem;align-items:center}
+    .btn{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:#0b1425;color:#var(--text);font-weight:600;letter-spacing:.02em;cursor:pointer;transition:.15s;display:flex;justify-content:center;gap:.5rem;align-items:center}
     .btn:hover{transform:translateY(-1px);border-color:#2b3649}
     .btn.primary{background:var(--acc);border-color:#128a3d;color:#0a0f0c}
     .btn.ghost{background:transparent}
     .row{display:flex;gap:10px;margin:10px 0 14px}
     .row>*{flex:1}
-    input[type="text"]{padding:14px 12px;border-radius:12px;border:1px solid var(--border);background:#0b1425;color:var(--text)}
+    input[type="text"]{padding:14px 12px;border-radius:12px;border:1px solid var(--border);background:#0b1425;color:#e5e7eb}
     .out{margin-top:12px;background:#0a1120;border:1px dashed #263042;color:#aab8d4;border-radius:14px;padding:14px;min-height:140px;white-space:pre-wrap;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
-    .out-actions{display:flex;gap:8px;margin-top:8px}
+    .out-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
     .toast{position:fixed;inset:auto 16px 16px 16px;display:none;z-index:50;background:#0b1425;border:1px solid #1f2937;color:#e5e7eb;padding:12px 14px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
     .toast.show{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
@@ -91,7 +91,8 @@
     <div id="out" class="out">--- 出力エリア ---</div>
     <div class="out-actions">
       <button id="btn-copylog" class="btn">出力をコピー</button>
-      <button id="btn-ping" class="btn">疎通チェック（/exec?ping=1）</button>
+      <button id="btn-ping" class="btn">疎通チェック（LIFF内）</button>
+      <button id="btn-open-ping" class="btn">疎通チェックをSafariで開く</button>
     </div>
 
     <footer>
@@ -157,13 +158,13 @@
   </div>
 
   <script>
-    // ★ あなたの LIFF ID と GAS WebアプリURL（反映済み）
+    // ★ 固定値（あなたの環境に合わせて反映済み）
     const LIFF_ID = "2008326025-1LYV0A5o";
     const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzExTx0Dey7KlL1wo4X1b5F3uymXA2jyJn0OPpMcSaE70f6NtDEf0RAVN6PXM1ywIJd/exec";
 
     const $ = s => document.querySelector(s);
     const print = (v, replace=false)=>{ const el=$('#out'); el.textContent = replace ? String(v) : (el.textContent + "\n" + v); el.scrollTop = el.scrollHeight; };
-    const toast = t => { const el=$('#toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); };
+    const toast = t => { const el=$('#toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); };
     const updateBadges = ()=>{ $('#b-inclient').textContent='inClient: '+liff.isInClient(); $('#b-loggedin').textContent='loggedIn: '+liff.isLoggedIn(); };
 
     async function ensureLogin(){ if(!liff.isLoggedIn()){ liff.login(); return false; } return true; }
@@ -231,7 +232,6 @@
           await navigator.clipboard.writeText($('#out').textContent || '');
           toast('コピーしました');
         } catch {
-          // 失敗時はテキスト選択フォールバック
           const range = document.createRange(); range.selectNodeContents($('#out'));
           const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
           const ok = document.execCommand('copy'); sel.removeAllRanges();
@@ -239,7 +239,7 @@
         }
       };
 
-      // 疎通チェック（/exec?ping=1）
+      // 疎通チェック（LIFF内で fetch）
       $('#btn-ping').onclick = async ()=>{
         try{
           const url = ENDPOINT_URL + (ENDPOINT_URL.includes('?') ? '&' : '?') + 'ping=1';
@@ -250,6 +250,16 @@
         }catch(e){
           print('[ping] 失敗: ' + e);
           toast('疎通エラー');
+        }
+      };
+
+      // 疎通チェック（外部ブラウザで直接開く）
+      $('#btn-open-ping').onclick = ()=>{
+        const url = ENDPOINT_URL + (ENDPOINT_URL.includes('?') ? '&' : '?') + 'ping=1';
+        if (liff.isInClient() && liff.openWindow) {
+          liff.openWindow({ url, external: true });
+        } else {
+          window.open(url, '_blank');
         }
       };
 
@@ -268,7 +278,7 @@
     function openProfileModal(){ $('#profile-modal').classList.add('show'); $('#profile-modal').setAttribute('aria-hidden','false'); }
     function closeProfileModal(){ $('#profile-modal').classList.remove('show'); $('#profile-modal').setAttribute('aria-hidden','true'); }
 
-    // 送信処理（GASへPOST）
+    // 送信処理（GASへPOST）：到達優先フォールバック付き
     async function submitProfile() {
       const profile = await liff.getProfile();
       const body = {
@@ -283,6 +293,7 @@
       };
 
       try {
+        // ① 通常の fetch
         print('[profile] POST ' + ENDPOINT_URL);
         const res  = await fetch(ENDPOINT_URL, {
           method : 'POST',
@@ -298,16 +309,41 @@
         try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
         if (data && data.ok) {
-          toast('送信しました');
-          print('[profile] OK: ' + JSON.stringify(data));
-          closeProfileModal();
-          return;
+          toast('送信しました'); print('[profile] OK: ' + JSON.stringify(data));
+          closeProfileModal(); return;
         }
         throw new Error('HTTP ' + res.status + ' / ' + (data?.error || text));
-      } catch (err) {
-        toast('送信エラー');
-        print('[profile] 送信例外: ' + err);
-        console.error(err);
+
+      } catch (err1) {
+        // ② フォールバックA: no-cors で投げ切る（レスポンスは読めないが到達しやすい）
+        try {
+          print('[profile] fallback no-cors...');
+          await fetch(ENDPOINT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          toast('送信（到達優先モード）');
+          print('[profile] no-cors 送信（レスポンスは確認不可）');
+          closeProfileModal(); return;
+        } catch (err2) {
+          // ③ フォールバックB: sendBeacon（iOS WebView で有効なことが多い）
+          try {
+            print('[profile] fallback sendBeacon...');
+            const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
+            const ok = navigator.sendBeacon(ENDPOINT_URL, blob);
+            if (ok) {
+              toast('送信（beacon）'); print('[profile] sendBeacon 送信（レスポンスは確認不可）');
+              closeProfileModal(); return;
+            }
+            throw new Error('sendBeacon returned false');
+          } catch (err3) {
+            toast('送信エラー');
+            print('[profile] 送信例外: ' + err1 + ' / no-cors: ' + err2 + ' / beacon: ' + err3);
+            console.error(err1, err2, err3);
+          }
+        }
       }
     }
 
