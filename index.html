@@ -40,17 +40,15 @@
     footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
     a.link{color:#9ecfff;text-decoration:none}
 
-    /* modal */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
-    .modal.show{display:flex}
-    .sheet{width:100%;max-width:760px;background:#0b1425;border:1px solid #1f2937;border-radius:16px;padding:18px}
-    .sheet h2{margin:0 0 12px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .grid2 .span2{grid-column:span 2}
-    .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:14px}
-    .help{color:#9aa7bf;font-size:12px;margin-top:6px}
-    .btn[disabled]{opacity:.6;cursor:default}
-    .copybar{display:flex;justify-content:flex-end;margin-top:8px}
+    /* Modal */
+    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);z-index:60}
+    .modal.show{display:grid}
+    .sheet{width:min(860px,94vw);background:#0b1422;border:1px solid #243044;border-radius:16px;padding:18px;box-shadow:0 20px 120px rgba(0,0,0,.6)}
+    .sheet h2{margin:0 0 10px 0}
+    .grid2{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    @media (max-width:640px){.grid2{grid-template-columns:1fr}}
+    .sheet .row-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .copy{position:absolute;top:10px;right:14px;cursor:pointer;font-size:14px;color:#aab8d4}
   </style>
 </head>
 <body>
@@ -59,7 +57,7 @@
       <div class="logo">LIFF</div>
       <div>
         <h1>はじめての LIFF（Vercel 版）</h1>
-        <p class="lead">ログイン → プロフィール表示 → トークへ送信まで、最小構成で試せます。プロフィール登録も追加！</p>
+        <p class="lead">ログイン → プロフィール表示 → トーク送信まで最小構成で。プロフィール登録も追加！</p>
         <div class="badges">
           <span id="b-inclient" class="badge">inClient: -</span>
           <span id="b-loggedin" class="badge">loggedIn: -</span>
@@ -75,18 +73,18 @@
 
       <button class="btn" id="btn-profile">プロフィール表示</button>
       <button class="btn" id="btn-send">トークに送信</button>
-      <button class="btn" id="btn-diagnose">診断</button>
+      <button class="btn" id="btn-open-profile">プロフィール登録</button>
     </div>
 
     <div class="row">
-      <input id="msg" type="text" value="" />
+      <input id="msg" type="text" placeholder="送るテキスト" value="LIFFからメッセージ送信テスト！" />
       <button id="btn-send2" class="btn">このテキストを送る</button>
     </div>
 
-    <div class="copybar">
-      <button id="btn-copy" class="btn ghost" style="width:auto;padding:8px 12px">出力をコピー</button>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>ログ</div>
+      <button id="btn-copy" class="copy">📋 コピー</button>
     </div>
-
     <div id="out" class="out">--- 出力エリア ---</div>
 
     <footer>
@@ -95,78 +93,67 @@
     </footer>
   </div>
 
-  <div id="toast" class="toast"></div>
-
   <!-- プロフィール登録モーダル -->
-  <div id="pf-modal" class="modal" aria-hidden="true">
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pf-title">
-      <h2 id="pf-title">プロフィール登録／更新</h2>
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="sheet">
+      <h2>プロフィール登録／更新</h2>
       <div class="grid2">
         <div>
-          <label>ニックネーム</label>
-          <input id="pf-nickname" type="text" value="" placeholder="">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">ニックネーム</div>
+          <input id="f-nickname" type="text" placeholder="" />
         </div>
         <div>
-          <label>本名</label>
-          <input id="pf-realname" type="text" value="" placeholder="">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">本名</div>
+          <input id="f-realname" type="text" placeholder="" />
         </div>
         <div>
-          <label>電話番号</label>
-          <input id="pf-phone" type="text" value="" placeholder="">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">電話番号</div>
+          <input id="f-phone" type="text" inputmode="tel" placeholder="" />
         </div>
         <div>
-          <label>性別</label>
-          <select id="pf-gender">
-            <option value="">未選択</option>
-            <option value="男性">男性</option>
-            <option value="女性">女性</option>
-            <option value="その他">その他</option>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">性別</div>
+          <select id="f-gender">
+            <option value="">選択してください</option>
+            <option>男性</option><option>女性</option><option>未回答</option>
           </select>
         </div>
-        <div class="span2">
-          <label>バドミントンのレベル</label>
-          <select id="pf-level">
-            <option value="">未選択</option>
-            <option value="初級">初級</option>
-            <option value="中級">中級</option>
-            <option value="上級">上級</option>
+        <div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">バドミントンのレベル</div>
+          <select id="f-level">
+            <option value="">選択してください</option>
+            <option>初級</option><option>中級</option><option>上級</option>
           </select>
         </div>
-        <div class="span2">
-          <label><input id="pf-rental" type="checkbox"> ラケットレンタル希望</label>
+        <div style="display:flex;align-items:flex-end">
+          <label style="display:flex;gap:8px;align-items:center">
+            <input id="f-rental" type="checkbox" /> ラケットレンタル希望
+          </label>
         </div>
       </div>
-      <div id="pf-help" class="help">送信すると管理シートに保存されます。</div>
-      <div class="actions">
-        <button id="pf-cancel" class="btn ghost" type="button">キャンセル</button>
-        <button id="pf-submit" class="btn primary" type="button">送信</button>
+      <div class="row-btns">
+        <button id="btn-submit" class="btn primary" style="min-width:120px">送信</button>
+        <button id="btn-cancel" class="btn" style="min-width:120px">キャンセル</button>
       </div>
     </div>
   </div>
 
+  <div id="toast" class="toast"></div>
+
   <script>
-    // ★あなたの LIFF ID（固定）
+    // ★あなたの LIFF ID（前に共有の：2008326025-1LYV0A5o）
     const LIFF_ID = "2008326025-1LYV0A5o";
-    // ★あなたの GAS WebアプリURL（固定）
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbweU7jbWwdin2MgX7VPYhBmozSkvyc9ZHYez00rtjlw9ip-xK0GfglJi1UCCngYMlCiSg/exec";
+    // 送信先は Vercel のプロキシ API（←これが重要）
+    const PROFILE_ENDPOINT = "/api/profile";
 
     const $ = s => document.querySelector(s);
-    const print = (v, replace=false)=>{ const el=$('#out'); el.textContent = replace ? String(v) : (el.textContent + "\n" + v); el.scrollTop = el.scrollHeight; };
+    const print = (v, replace=false)=>{ const el=$('#out'); el.textContent = replace ? String(v) : (el.textContent + (el.textContent?'\\n':'') + v); el.scrollTop = el.scrollHeight; };
     const toast = t => { const el=$('#toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); };
     const updateBadges = ()=>{ $('#b-inclient').textContent='inClient: '+liff.isInClient(); $('#b-loggedin').textContent='loggedIn: '+liff.isLoggedIn(); };
-
-    // 出力コピー
-    $('#btn-copy').addEventListener('click', async () => {
-      try{
-        await navigator.clipboard.writeText($('#out').textContent);
-        toast('出力をコピーしました');
-      }catch{ toast('コピーに失敗しました'); }
-    });
 
     async function ensureLogin(){ if(!liff.isLoggedIn()){ liff.login(); return false; } return true; }
 
     async function initLiff(){
-      if(!('liff' in window)){ print("LIFF SDKを読み込めませんでした。", true); return; }
+      if(!('liff' in window)){ print("LIFF SDKを読み込めませんでした。ネットワーク/コンテンツブロッカーを確認してください。", true); return; }
       try{
         print("LIFF SDK 読み込みOK。初期化中…", true);
         await liff.init({ liffId: LIFF_ID });
@@ -179,25 +166,17 @@
       }
     }
 
-    function openProfileModal(){ $('#pf-modal').classList.add('show'); $('#pf-modal').setAttribute('aria-hidden','false'); }
-    function closeProfileModal(){ $('#pf-modal').classList.remove('show'); $('#pf-modal').setAttribute('aria-hidden','true'); }
-
-    // ====== ボタン配線 ======
     function wireButtons(){
+      // ログコピー
+      $('#btn-copy').onclick = async ()=>{
+        try{ await navigator.clipboard.writeText($('#out').textContent||''); toast('ログをコピーしました'); }catch{ toast('コピーに失敗しました'); }
+      };
+
       $('#btn-login').onclick  = ()=> { if(!liff.isLoggedIn()) liff.login(); else toast('すでにログイン済み'); };
       $('#btn-regrant').onclick= ()=> liff.login({ scope:['profile','openid','chat_message.write'], prompt:'consent' });
       $('#btn-logout').onclick = ()=> { if(liff.isLoggedIn()){ liff.logout(); location.reload(); } else toast('ログインしていません'); };
 
-      $('#btn-profile').onclick = ()=> openProfileModal();
-
-      $('#pf-cancel').onclick  = ()=> closeProfileModal();
-      $('#pf-submit').onclick  = ()=> submitProfile();
-
-      $('#btn-profile').insertAdjacentHTML('afterend',
-        '<button class="btn" id="btn-profile-register">プロフィール登録</button>');
-      $('#btn-profile-register').onclick = ()=> openProfileModal();
-
-      $('#btn-profile').onclick = async ()=> {
+      $('#btn-profile').onclick = async ()=>{
         if(!(await ensureLogin())) return;
         try{
           const p = await liff.getProfile();
@@ -211,7 +190,8 @@
         if(!liff.isInClient()){ print("LINEアプリ内で開いてください（inClient=false）"); toast('inClient=false'); return; }
         try{
           await liff.sendMessages([{ type:'text', text }]);
-          print("[send] 送信成功！"); toast('送信しました');
+          print("[send] 送信成功！");
+          toast('送信しました');
         }catch(e){
           const name = e?.name || e?.code || "Error";
           print("[send] 送信失敗: " + name + " " + (e?.message||""));
@@ -219,104 +199,60 @@
         }
       }
       $('#btn-send').onclick  = ()=> doSend("LIFFからメッセージ送信テスト！");
-      $('#btn-send2').onclick = ()=> doSend($('#msg').value||"（無題）");
+      $('#btn-send2').onclick = ()=> doSend($('#msg').value);
 
-      $('#btn-diagnose').onclick = async ()=> {
+      // プロフィール登録モーダル
+      $('#btn-open-profile').onclick = async ()=>{
+        if(!(await ensureLogin())) return;
+        // 既知情報を初期表示
         try{
-          const info = {
-            loggedIn: liff.isLoggedIn(),
-            inClient: liff.isInClient(),
-            os: liff.getOS?.(),
-            version: liff.getVersion?.(),
-            context: liff.getContext?.(),
-            grantedScopes: (await liff.getGrantedScopes?.())||[]
+          const p = await liff.getProfile();
+          $('#f-nickname').value = p.displayName || '';
+        }catch{}
+        $('#modal').classList.add('show');
+      };
+      $('#btn-cancel').onclick = ()=> $('#modal').classList.remove('show');
+
+      // 送信
+      $('#btn-submit').onclick = async ()=>{
+        if(!(await ensureLogin())) return;
+        try{
+          const p = await liff.getProfile();
+          const payload = {
+            userId: p.userId,
+            displayName: p.displayName || '',
+            nickname: $('#f-nickname').value.trim(),
+            realname: $('#f-realname').value.trim(),
+            phone: $('#f-phone').value.trim(),
+            gender: $('#f-gender').value,
+            level: $('#f-level').value,
+            rental: $('#f-rental').checked ? 'TRUE' : 'FALSE'
           };
-          print("診断情報:\n" + JSON.stringify(info,null,2));
-        }catch(e){ print("診断エラー: " + e); }
-      };
-    }
 
-    // ====== プロフィール送信 ======
-    async function submitProfile(){
-      if(!(await ensureLogin())) return;
+          print("[profile] POST " + PROFILE_ENDPOINT);
+          const r = await fetch(PROFILE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify(payload)
+          });
 
-      const btn = $('#pf-submit');
-      const help = $('#pf-help');
-
-      const payload = {
-        userId   : liff.getContext()?.userId || (await liff.getProfile())?.userId || "",
-        displayName: (await liff.getProfile())?.displayName || "",
-        nickname : $('#pf-nickname').value.trim(),
-        realname : $('#pf-realname').value.trim(),
-        phone    : $('#pf-phone').value.trim(),
-        gender   : $('#pf-gender').value,
-        level    : $('#pf-level').value,
-        rental   : $('#pf-rental').checked ? "TRUE" : "FALSE",
-        updatedAt: new Date().toISOString()
-      };
-
-      // 送信中UI
-      btn.disabled = true;
-      const oldLabel = btn.textContent; btn.textContent = "送信中…";
-      help.textContent = "送信中…";
-
-      print(`[profile] POST ${GAS_URL}`);
-
-      // 1) ふつうの fetch で CORS 送信（成功すれば JSON を期待）
-      try{
-        const res = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify(payload),
-          credentials: 'omit',
-          mode: 'cors',
-          redirect: 'follow',
-          cache: 'no-store'
-        });
-
-        if(!res.ok){
-          const text = await res.text().catch(()=>"(no text)");
-          throw new Error(`HTTP ${res.status} ${res.statusText} / ${text}`);
-        }
-
-        let data = {};
-        try { data = await res.json(); } catch { /* 返却が無い場合も許容 */ }
-
-        // 成功
-        const ok = data?.ok !== false; // okフラグがfalse明示でない限り成功扱い
-        if(ok){
-          print("[profile] 登録完了");
-          toast("登録完了！");
-          help.textContent = "登録完了しました。";
-          closeProfileModal();
-        }else{
-          const reason = data?.message || "不明なエラー";
-          throw new Error(reason);
-        }
-      }catch(err){
-        // 2) 最後の手段: sendBeacon（no-cors）
-        print(`[profile] 送信例外: ${err}`);
-        try{
-          print("[profile] fallback sendBeacon...");
-          const blob = new Blob([JSON.stringify(payload)], {type:"application/json"});
-          const ok = navigator.sendBeacon(GAS_URL, blob);
-          if(ok){
-            print("[profile] sendBeacon 送信（応答は確認不可）");
-            toast("登録を送信しました（応答の確認不可）");
-            help.textContent = "送信を試みました（応答は確認できません）。";
-            closeProfileModal();
+          // 成功/失敗の明示
+          const text = await r.text();
+          let data = null;
+          try{ data = JSON.parse(text); }catch{}
+          if(r.ok && (data?.ok || data?.result==='ok')){
+            toast('プロフィールを登録しました'); print("[profile] 登録成功");
+            $('#modal').classList.remove('show');
           }else{
-            throw new Error("sendBeacon が false を返しました");
+            toast('送信エラー: ' + (data?.error || r.status + ' ' + r.statusText));
+            print("[profile] エラー応答: " + text);
           }
-        }catch(err2){
-          // 完全失敗
-          print(`[profile] 完全失敗: ${err2}`);
-          toast(`送信エラー: ${String(err2.message || err2)}`);
-          help.textContent = `エラー: ${String(err2.message || err2)}`;
+        }catch(e){
+          // ここに来るのはネットワーク系（プロキシが未配置/タイムアウト等）
+          print("[profile] 送信例外: " + (e?.message||e));
+          toast('送信に失敗しました');
         }
-      }finally{
-        btn.disabled = false; btn.textContent = oldLabel;
-      }
+      };
     }
 
     wireButtons();
