@@ -1,7 +1,7 @@
 // api/profile.js — Vercel のサーバレス関数（GAS プロキシ）
 // CORS対応 / GET(読み取り) と POST(保存) の両方に対応
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz9jWgoXy1riL8EyeWSlla0Ie2Eesjz7j1qUY784jjRODhdZ_bABDal2IxjOcRI1sH0qQ/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzAmoPLFYOIWr966QGSddWaPp3iO7H3cqHY__kpIWVY5UWJIlcAq6jueM0nM4aO873LUQ/exec";
 
 export default async function handler(req, res) {
   // CORS
